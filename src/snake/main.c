@@ -5,7 +5,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "../ncurses-handler.h"
+
 #define MAX_SCORE 100
+#define TICKS_PER_SECOND 8
 
 int MAX_X, MAX_Y;
 int SNAKE_LENGTH = 1;
@@ -15,39 +18,11 @@ int SEED[2];
 
 void initialize_game()
 {
-    initscr();
-
-    getmaxyx(stdscr, MAX_Y, MAX_X);
-    // if (y < 40 || x < 40)
-    // {
-    //     endwin();
-    //     printf("Terminal too small\n");
-    //     exit(1);
-    // }
-
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < MAX_SCORE; i++)
     {
         SNAKE[i][0] = 2;
         SNAKE[i][1] = 2;
     }
-
-    noecho();
-    raw();
-    keypad(stdscr, TRUE);
-    curs_set(0);
-    refresh();
-}
-
-void rectangle(int y1, int x1, int y2, int x2)
-{
-    mvhline(y1, x1, 0, x2 - x1);
-    mvhline(y2, x1, 0, x2 - x1);
-    mvvline(y1, x1, 0, y2 - y1);
-    mvvline(y1, x2, 0, y2 - y1);
-    mvaddch(y1, x1, ACS_ULCORNER);
-    mvaddch(y2, x1, ACS_LLCORNER);
-    mvaddch(y1, x2, ACS_URCORNER);
-    mvaddch(y2, x2, ACS_LRCORNER);
 }
 
 bool collision_check()
@@ -119,8 +94,10 @@ void game_loop()
 {
     int y = 0, x = 0;
     bool grow = false;
+    int ch, possible_newch = 0;
     srand(time(NULL));
     new_seed();
+    timeout(0);
 
     do
     {
@@ -130,48 +107,56 @@ void game_loop()
             exit(0);
         }
 
-        int ch = 0;
-
-        struct pollfd mypoll = {STDIN_FILENO, POLLIN | POLLPRI};
         int start = (int)clock();
-        if (poll(&mypoll, 1, 1000))
-        {
-            ch = getch();
-        }
-
-        // mvprintw(MAX_Y - 2, 1, "time: %d", clock() - start);
-
-        int end, diff;
+        int end, diff_in_ms;
         do
         {
-            end = (int)clock();
-            diff = (int)(((end - start) / CLOCKS_PER_SEC) * 1000);
-        } while (end < start + 1000);
+            end = (int)(clock());
 
-        if (ch == 'q')
+            possible_newch = getch();
+            if (possible_newch != 0 && possible_newch != ERR)
+                ch = possible_newch;
+
+            diff_in_ms = (int)(((double)(end - start) / CLOCKS_PER_SEC) * 1000);
+        } while (diff_in_ms < (1000 / TICKS_PER_SECOND));
+
+        switch (ch)
         {
+        case 'q':
             endwin();
             exit(0);
-        }
-        if (ch == KEY_UP)
-        {
-            MOVEMENT_DIRECTION[0] = 0;
-            MOVEMENT_DIRECTION[1] = -1;
-        }
-        if (ch == KEY_DOWN)
-        {
-            MOVEMENT_DIRECTION[0] = 0;
-            MOVEMENT_DIRECTION[1] = 1;
-        }
-        if (ch == KEY_LEFT)
-        {
-            MOVEMENT_DIRECTION[0] = -1;
-            MOVEMENT_DIRECTION[1] = 0;
-        }
-        if (ch == KEY_RIGHT)
-        {
-            MOVEMENT_DIRECTION[0] = 1;
-            MOVEMENT_DIRECTION[1] = 0;
+            break;
+        case KEY_UP:
+            if (MOVEMENT_DIRECTION[1] != 1)
+            {
+                MOVEMENT_DIRECTION[0] = 0;
+                MOVEMENT_DIRECTION[1] = -1;
+            }
+            break;
+        case KEY_DOWN:
+            if (MOVEMENT_DIRECTION[1] != -1)
+            {
+                MOVEMENT_DIRECTION[0] = 0;
+                MOVEMENT_DIRECTION[1] = 1;
+            }
+            break;
+        case KEY_LEFT:
+            if (MOVEMENT_DIRECTION[0] != 1)
+            {
+                MOVEMENT_DIRECTION[0] = -1;
+                MOVEMENT_DIRECTION[1] = 0;
+            }
+            break;
+        case KEY_RIGHT:
+            if (MOVEMENT_DIRECTION[0] != -1)
+            {
+                MOVEMENT_DIRECTION[0] = 1;
+                MOVEMENT_DIRECTION[1] = 0;
+            }
+            break;
+
+        default:
+            break;
         }
 
         grow = move_snake(grow);
@@ -184,15 +169,14 @@ void game_loop()
 
 int main()
 {
-    initialize_game();
-
-    rectangle(0, 0, MAX_Y - 1, MAX_X - 1);
-    mvprintw(1, MAX_X - 10, "Score: ");
+    initialize_ncurses_screen(&MAX_X, &MAX_Y);
+    rectangle(0, MAX_X - 1, 0, MAX_Y - 1);
+    mvprintw(1, MAX_X - 10, "Score: 00");
     refresh();
 
+    initialize_game();
     game_loop();
 
     endwin();
-
     return 0;
 }
