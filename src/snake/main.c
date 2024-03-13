@@ -8,13 +8,30 @@
 #include "../ncurses-handler.h"
 
 #define MAX_SCORE 100
-#define TICKS_PER_SECOND 8
+#define TICKS_PER_SECOND 10
 
 int MAX_X, MAX_Y;
 int SNAKE_LENGTH = 1;
-int MOVEMENT_DIRECTION[] = {1, 0};
 int SNAKE[MAX_SCORE][2];
 int SEED[2];
+
+int MOVEMENT_DIRECTION = 0;
+int opposite_directions(int direction)
+{
+    switch (direction)
+    {
+    case KEY_UP:
+        return KEY_DOWN;
+    case KEY_DOWN:
+        return KEY_UP;
+    case KEY_LEFT:
+        return KEY_RIGHT;
+    case KEY_RIGHT:
+        return KEY_LEFT;
+    default:
+        return -1;
+    }
+}
 
 void initialize_game()
 {
@@ -70,8 +87,10 @@ bool move_snake(bool grow)
         SNAKE[i][1] = SNAKE[i - 1][1];
     }
 
-    SNAKE[0][0] += MOVEMENT_DIRECTION[0];
-    SNAKE[0][1] += MOVEMENT_DIRECTION[1];
+    SNAKE[0][0] += MOVEMENT_DIRECTION == KEY_LEFT ? -1 : MOVEMENT_DIRECTION == KEY_RIGHT ? 1
+                                                                                         : 0;
+    SNAKE[0][1] += MOVEMENT_DIRECTION == KEY_UP ? -1 : MOVEMENT_DIRECTION == KEY_DOWN ? 1
+                                                                                      : 0;
 
     mvprintw(1, MAX_X - 3, "%02d", SNAKE_LENGTH);
 
@@ -94,10 +113,12 @@ void game_loop()
 {
     int y = 0, x = 0;
     bool grow = false;
-    int ch, possible_newch = 0;
+    int ch = KEY_RIGHT;
+    int possible_newch = 0;
     srand(time(NULL));
     new_seed();
     timeout(0);
+    MOVEMENT_DIRECTION = KEY_RIGHT;
 
     do
     {
@@ -114,50 +135,19 @@ void game_loop()
             end = (int)(clock());
 
             possible_newch = getch();
-            if (possible_newch != 0 && possible_newch != ERR)
+            if (possible_newch != 0 && possible_newch != ERR && possible_newch != opposite_directions(MOVEMENT_DIRECTION) && possible_newch != ch)
                 ch = possible_newch;
 
             diff_in_ms = (int)(((double)(end - start) / CLOCKS_PER_SEC) * 1000);
         } while (diff_in_ms < (1000 / TICKS_PER_SECOND));
 
-        switch (ch)
+        if (ch == 'q')
         {
-        case 'q':
             endwin();
             exit(0);
-            break;
-        case KEY_UP:
-            if (MOVEMENT_DIRECTION[1] != 1)
-            {
-                MOVEMENT_DIRECTION[0] = 0;
-                MOVEMENT_DIRECTION[1] = -1;
-            }
-            break;
-        case KEY_DOWN:
-            if (MOVEMENT_DIRECTION[1] != -1)
-            {
-                MOVEMENT_DIRECTION[0] = 0;
-                MOVEMENT_DIRECTION[1] = 1;
-            }
-            break;
-        case KEY_LEFT:
-            if (MOVEMENT_DIRECTION[0] != 1)
-            {
-                MOVEMENT_DIRECTION[0] = -1;
-                MOVEMENT_DIRECTION[1] = 0;
-            }
-            break;
-        case KEY_RIGHT:
-            if (MOVEMENT_DIRECTION[0] != -1)
-            {
-                MOVEMENT_DIRECTION[0] = 1;
-                MOVEMENT_DIRECTION[1] = 0;
-            }
-            break;
-
-        default:
-            break;
         }
+        else if (opposite_directions(MOVEMENT_DIRECTION) != -1)
+            MOVEMENT_DIRECTION = ch;
 
         grow = move_snake(grow);
         if (grow)
