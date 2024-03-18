@@ -6,14 +6,17 @@
 #include <time.h>
 
 #include "../ncurses-handler.h"
+#include "../arena.h"
 
 #define MAX_SCORE 100
 #define TICKS_PER_SECOND 10
 
-int MAX_X, MAX_Y;
-int SNAKE_LENGTH = 1;
-int SNAKE[MAX_SCORE][2];
+int MAX_X,
+    MAX_Y;
+int SNAKE_LENGTH = 2;
+int SNAKE[MAX_SCORE + 2][2];
 int SEED[2];
+arena ARENA;
 
 int MOVEMENT_DIRECTION = 0;
 int opposite_directions(int direction)
@@ -33,13 +36,33 @@ int opposite_directions(int direction)
     }
 }
 
+void update_score()
+{
+    mvprintw(1, MAX_X - 3, "%02d", SNAKE_LENGTH - 2);
+}
+
+void score_string()
+{
+    mvprintw(1, MAX_X - 10, "Score: 00");
+}
+
 void initialize_game()
 {
-    for (int i = 0; i < MAX_SCORE; i++)
+    for (int i = 0; i < SNAKE_LENGTH; i++)
     {
-        SNAKE[i][0] = 2;
+        SNAKE[i][0] = 3 - i;
         SNAKE[i][1] = 2;
     }
+
+    ARENA = arena_create(0, MAX_X - 1, 0, MAX_Y - 1);
+
+    arena_node score = arena_node_create(MAX_X - 10, 1, &update_score, &score_string);
+    ARENA.nodes = &score;
+
+    arena_render_nodes(ARENA);
+    rectangle(ARENA.left_x, ARENA.right_x, ARENA.top_y, ARENA.bottom_y);
+
+    refresh();
 }
 
 bool collision_check()
@@ -50,7 +73,7 @@ bool collision_check()
             return true;
     }
 
-    if (SNAKE[0][0] == 1 || SNAKE[0][0] == MAX_X - 1 || SNAKE[0][1] == 1 || SNAKE[0][1] == MAX_Y - 1)
+    if (SNAKE[0][0] == ARENA.left_x || SNAKE[0][0] == ARENA.right_x || SNAKE[0][1] == ARENA.top_y || SNAKE[0][1] == ARENA.bottom_y)
         return true;
 
     return false;
@@ -78,8 +101,8 @@ bool move_snake(bool grow)
 {
     if (grow)
         SNAKE_LENGTH++;
-
-    mvaddch(SNAKE[SNAKE_LENGTH - 1][1], SNAKE[SNAKE_LENGTH - 1][0], ' ');
+    else
+        mvaddch(SNAKE[SNAKE_LENGTH - 1][1], SNAKE[SNAKE_LENGTH - 1][0], ' ');
 
     for (int i = SNAKE_LENGTH - 1; i > 0; i--)
     {
@@ -92,7 +115,7 @@ bool move_snake(bool grow)
     SNAKE[0][1] += MOVEMENT_DIRECTION == KEY_UP ? -1 : MOVEMENT_DIRECTION == KEY_DOWN ? 1
                                                                                       : 0;
 
-    mvprintw(1, MAX_X - 3, "%02d", SNAKE_LENGTH);
+    update_score();
 
     mvaddch(SNAKE[0][1], SNAKE[0][0], '0');
     return is_there_seed(SNAKE[0]);
@@ -115,7 +138,7 @@ void game_loop()
     bool grow = false;
     int ch = KEY_RIGHT;
     int possible_newch = 0;
-    srand(time(NULL));
+    srand(time(0));
     new_seed();
     timeout(0);
     MOVEMENT_DIRECTION = KEY_RIGHT;
@@ -160,11 +183,8 @@ void game_loop()
 int main()
 {
     initialize_ncurses_screen(&MAX_X, &MAX_Y);
-    rectangle(0, MAX_X - 1, 0, MAX_Y - 1);
-    mvprintw(1, MAX_X - 10, "Score: 00");
-    refresh();
-
     initialize_game();
+
     game_loop();
 
     endwin();
