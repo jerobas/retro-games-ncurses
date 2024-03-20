@@ -19,8 +19,10 @@ int MAX_X,
 int BOARD_HEIGHT;
 int BOARD_WIDTH;
 
-int CURRENT_PIECE[4][2];
-int NEXT_PIECE[4][2];
+tetris_piece CURRENT_PIECE;
+tetris_piece NEXT_PIECE;
+
+int TRANSFORMED_PIECE[4][2];
 
 bool **TETRIS_BOARD;
 
@@ -29,19 +31,29 @@ arena ARENA;
 void update_piece(bool first_time)
 {
     if (!first_time)
+    {
         for (int i = 0; i < 4; i++)
         {
-            mvaddch(CURRENT_PIECE[i][1], CURRENT_PIECE[i][0], ' ');
+            mvaddch(CURRENT_PIECE.shape[i][1], CURRENT_PIECE.shape[i][0], ' ');
         }
-    for (int i = 0; i < 4; i++)
-    {
-        mvaddch(NEXT_PIECE[i][1], NEXT_PIECE[i][0], '0');
-    }
 
-    for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
+        {
+            mvaddch(TRANSFORMED_PIECE[i][1], TRANSFORMED_PIECE[i][0], '0');
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            CURRENT_PIECE.shape[i][0] = TRANSFORMED_PIECE[i][0];
+            CURRENT_PIECE.shape[i][1] = TRANSFORMED_PIECE[i][1];
+        }
+    }
+    else
     {
-        CURRENT_PIECE[i][0] = NEXT_PIECE[i][0];
-        CURRENT_PIECE[i][1] = NEXT_PIECE[i][1];
+        for (int i = 0; i < 4; i++)
+        {
+            mvaddch(CURRENT_PIECE.shape[i][1], CURRENT_PIECE.shape[i][0], '0');
+        }
     }
 }
 
@@ -64,8 +76,8 @@ void operation(int ch)
 
     for (int i = 0; i < 4; i++)
     {
-        NEXT_PIECE[i][0] = CURRENT_PIECE[i][0] + op_x;
-        NEXT_PIECE[i][1] = CURRENT_PIECE[i][1] + op_y;
+        TRANSFORMED_PIECE[i][0] = CURRENT_PIECE.shape[i][0] + op_x;
+        TRANSFORMED_PIECE[i][1] = CURRENT_PIECE.shape[i][1] + op_y;
     }
 }
 
@@ -102,7 +114,7 @@ bool wall_collision_check(int ch)
 
     for (int i = 0; i < 4; i++)
     {
-        if (NEXT_PIECE[i][0] < 0 || NEXT_PIECE[i][0] >= BOARD_WIDTH)
+        if (TRANSFORMED_PIECE[i][0] < 0 || TRANSFORMED_PIECE[i][0] >= BOARD_WIDTH)
             return true;
     }
 
@@ -113,7 +125,7 @@ bool floor_collision_check()
 {
     for (int i = 0; i < 4; i++)
     {
-        if (TETRIS_BOARD[CURRENT_PIECE[i][0]][CURRENT_PIECE[i][1] + 1])
+        if (TETRIS_BOARD[CURRENT_PIECE.shape[i][0]][CURRENT_PIECE.shape[i][1] + 1])
             return true;
     }
 
@@ -138,7 +150,19 @@ bool move_piece(int ch)
 
 void new_queue()
 {
-    new_piece(NEXT_PIECE, rand() % 7, floor(MAX_X / 2), 2);
+    for (int i = 0; i < 4; i++)
+    {
+        mvaddch(CURRENT_PIECE.shape[i][1], CURRENT_PIECE.shape[i][0], ' ');
+    }
+
+    CURRENT_PIECE = NEXT_PIECE;
+    NEXT_PIECE = init_tetris_piece(rand() % 7, floor(MAX_X / 2), 2);
+}
+
+void first_queue()
+{
+    NEXT_PIECE = init_tetris_piece(rand() % 7, floor(MAX_X / 2), 2);
+    CURRENT_PIECE = init_tetris_piece(rand() % 7, floor(MAX_X / 2), 2);
 }
 
 int game_loop()
@@ -146,9 +170,10 @@ int game_loop()
     int ch = 0;
 
     srand(time(0));
-    new_queue();
+    first_queue();
     update_piece(true);
     timeout(0);
+    bool pause = false;
 
     int start = (int)clock();
     int end, diff_in_ms;
@@ -160,6 +185,28 @@ int game_loop()
             endwin();
             return 0;
         }
+        if (ch == 'r')
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                mvaddch(CURRENT_PIECE.shape[i][1], CURRENT_PIECE.shape[i][0], ' ');
+            }
+            CURRENT_PIECE.rotate(&CURRENT_PIECE);
+            update_piece(true);
+        }
+        if (ch == 'p')
+        {
+            pause = !pause;
+            if (pause)
+            {
+                mvprintw(MAX_Y / 2, MAX_X / 2, "PAUSED");
+            }
+            else
+            {
+                mvprintw(MAX_Y / 2, MAX_X / 2, "      ");
+            }
+        }
+
         move_piece(ch);
 
         end = (int)(clock());
@@ -169,10 +216,15 @@ int game_loop()
         {
             start = (int)clock();
             if (floor_collision_check())
+            {
                 new_queue();
-            else
+                update_piece(true);
+            }
+            else if (!pause)
+            {
                 operation(KEY_DOWN);
-            update_piece(false);
+                update_piece(false);
+            }
         }
 
         refresh();
