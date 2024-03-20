@@ -136,6 +136,11 @@ bool wall_collision_check(int ch)
         if (TRANSFORMED_PIECE[i][0] < 1 || TRANSFORMED_PIECE[i][0] >= BOARD_WIDTH)
             return true;
     }
+    for (int i = 0; i < 4; i++)
+    {
+        if (TETRIS_BOARD[TRANSFORMED_PIECE[i][0]][TRANSFORMED_PIECE[i][1]])
+            return true;
+    }
 
     return false;
 }
@@ -169,11 +174,6 @@ bool move_piece(int ch)
 
 void new_queue()
 {
-    for (int i = 0; i < 4; i++)
-    {
-        mvaddch(CURRENT_PIECE.shape[i][1], CURRENT_PIECE.shape[i][0], ' ');
-    }
-
     CURRENT_PIECE = NEXT_PIECE;
     NEXT_PIECE = init_tetris_piece(rand() % 7, floor(MAX_X / 2), 2);
 }
@@ -213,11 +213,11 @@ int game_loop()
             pause = !pause;
             if (pause)
             {
-                mvprintw(MAX_Y / 2, MAX_X / 2, "PAUSED");
+                mvprintw(MAX_Y / 2, MAX_X / 2 - 2, "PAUSE");
             }
             else
             {
-                mvprintw(MAX_Y / 2, MAX_X / 2, "      ");
+                mvprintw(MAX_Y / 2, MAX_X / 2 - 2, "      ");
             }
         }
 
@@ -231,6 +231,10 @@ int game_loop()
             start = (int)clock();
             if (floor_collision_check())
             {
+                for (int i = 0; i < 4; i++)
+                {
+                    TETRIS_BOARD[CURRENT_PIECE.shape[i][0]][CURRENT_PIECE.shape[i][1]] = 1;
+                }
                 new_queue();
                 update_piece(true);
             }
@@ -249,7 +253,7 @@ int main()
 {
     initialize_ncurses_screen(&MAX_X, &MAX_Y);
 
-    BOARD_HEIGHT = MAX_Y - 2;
+    BOARD_HEIGHT = MAX_Y;
     BOARD_WIDTH = MAX_X - 2;
 
     TETRIS_BOARD = (bool **)malloc(BOARD_WIDTH * sizeof(bool *));
@@ -260,7 +264,7 @@ int main()
 
     mvprintw(0, 0, "0");
     mvprintw(0, MAX_X - 1, "0");
-    mvprintw(MAX_Y - 1, 0, "0");
+    mvprintw(MAX_Y - 1, 0, "%d", MAX_Y - 1);
     mvprintw(MAX_Y - 1, MAX_X - 1, "0");
     refresh();
 

@@ -73,11 +73,10 @@ int i_rotate(tetris_piece *piece, int transform[4][2])
 
     for (int i = 0; i < 4; i++)
         if (if_true_x)
-            transform[i][0] = piece->shape[i][0] + signal;
+            transform[i][0] += signal;
         else
-            transform[i][1] = piece->shape[i][1] + signal;
+            transform[i][1] += signal;
 
-    mvprintw(2, 2, "rotation: %d", piece->rotation);
     piece->rotation = (piece->rotation + 1) % 4;
     return 0;
 }
