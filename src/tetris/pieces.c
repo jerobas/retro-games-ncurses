@@ -23,12 +23,13 @@
         1 2
         3 4
 */
-int do_nothing(tetris_piece *piece)
+
+int do_nothing(tetris_piece *piece, int transform[4][2])
 {
     return 0;
 }
 
-int block_centralized_rotate(tetris_piece *piece)
+int block_centralized_rotate(tetris_piece *piece, int transform[4][2])
 {
     int center_block;
 
@@ -55,16 +56,16 @@ int block_centralized_rotate(tetris_piece *piece)
         int x = piece_array[i][0];
         int y = piece_array[i][1];
 
-        piece_array[i][0] = piece_array[center_block][0] - (y - piece_array[center_block][1]);
-        piece_array[i][1] = piece_array[center_block][1] + (x - piece_array[center_block][0]);
+        transform[i][0] = piece_array[center_block][0] - (y - piece_array[center_block][1]);
+        transform[i][1] = piece_array[center_block][1] + (x - piece_array[center_block][0]);
     }
 
     return 0;
 }
 
-int i_rotate(tetris_piece *piece)
+int i_rotate(tetris_piece *piece, int transform[4][2])
 {
-    block_centralized_rotate(piece);
+    block_centralized_rotate(piece, transform);
 
     //+x +y -x -y
     int signal = piece->rotation > 1 ? -1 : 1;
@@ -72,16 +73,16 @@ int i_rotate(tetris_piece *piece)
 
     for (int i = 0; i < 4; i++)
         if (if_true_x)
-            piece->shape[i][0] += signal;
+            transform[i][0] = piece->shape[i][0] + signal;
         else
-            piece->shape[i][1] += signal;
+            transform[i][1] = piece->shape[i][1] + signal;
 
     mvprintw(2, 2, "rotation: %d", piece->rotation);
     piece->rotation = (piece->rotation + 1) % 4;
     return 0;
 }
 
-int (*define_rotate(int type))(tetris_piece *)
+int (*define_rotate(int type))(tetris_piece *, int[4][2])
 {
     if (type / 7 > 0)
         return do_nothing;

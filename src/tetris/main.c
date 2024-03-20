@@ -108,13 +108,32 @@ void initialize_game()
     refresh();
 }
 
+void rotate_with_check()
+{
+    CURRENT_PIECE.rotate(&CURRENT_PIECE, TRANSFORMED_PIECE);
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (TRANSFORMED_PIECE[i][0] < 1 || TRANSFORMED_PIECE[i][0] >= BOARD_WIDTH)
+            return;
+    }
+
+    for (int i = 0; i < 4; i++)
+    {
+        if (TETRIS_BOARD[TRANSFORMED_PIECE[i][0]][TRANSFORMED_PIECE[i][1] + 1])
+            return;
+    }
+
+    update_piece(false);
+}
+
 bool wall_collision_check(int ch)
 {
     operation(ch);
 
     for (int i = 0; i < 4; i++)
     {
-        if (TRANSFORMED_PIECE[i][0] < 0 || TRANSFORMED_PIECE[i][0] >= BOARD_WIDTH)
+        if (TRANSFORMED_PIECE[i][0] < 1 || TRANSFORMED_PIECE[i][0] >= BOARD_WIDTH)
             return true;
     }
 
@@ -185,15 +204,10 @@ int game_loop()
             endwin();
             return 0;
         }
+
         if (ch == 'r')
-        {
-            for (int i = 0; i < 4; i++)
-            {
-                mvaddch(CURRENT_PIECE.shape[i][1], CURRENT_PIECE.shape[i][0], ' ');
-            }
-            CURRENT_PIECE.rotate(&CURRENT_PIECE);
-            update_piece(true);
-        }
+            rotate_with_check();
+
         if (ch == 'p')
         {
             pause = !pause;
@@ -243,6 +257,12 @@ int main()
         TETRIS_BOARD[i] = (bool *)malloc(BOARD_HEIGHT * sizeof(bool));
 
     initialize_game();
+
+    mvprintw(0, 0, "0");
+    mvprintw(0, MAX_X - 1, "0");
+    mvprintw(MAX_Y - 1, 0, "0");
+    mvprintw(MAX_Y - 1, MAX_X - 1, "0");
+    refresh();
 
     game_loop();
     endwin();
