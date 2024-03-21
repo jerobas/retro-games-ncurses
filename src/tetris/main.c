@@ -18,6 +18,10 @@ int MAX_X,
 
 int BOARD_HEIGHT;
 int BOARD_WIDTH;
+int DESIRED_BOARD_WIDTH = 20;
+int BOARD_BEGIN;
+int BOARD_END;
+int BOARD_THICKNESS = 1;
 
 tetris_piece CURRENT_PIECE;
 tetris_piece NEXT_PIECE;
@@ -59,7 +63,7 @@ void update_piece(bool first_time)
 
 void operation(int ch)
 {
-    int op_x, op_y = 0;
+    int op_x = 0, op_y = 0;
 
     switch (ch)
     {
@@ -83,12 +87,12 @@ void operation(int ch)
 
 void update_score()
 {
-    mvprintw(1, MAX_X - 3, "%02d", 2);
+    mvprintw(1, BOARD_WIDTH - 3, "%02d", 2);
 }
 
 void score_string()
 {
-    mvprintw(1, MAX_X - 10, "Score: 00");
+    mvprintw(1, BOARD_WIDTH - 10, "Score: 00");
 }
 
 void initialize_game()
@@ -97,9 +101,9 @@ void initialize_game()
         for (int j = 0; j < BOARD_HEIGHT; j++)
             TETRIS_BOARD[i][j] = (j == BOARD_HEIGHT - 1 ? 1 : 0);
 
-    ARENA = arena_create(0, MAX_X - 1, 0, MAX_Y - 1);
+    ARENA = arena_create(BOARD_BEGIN, BOARD_BEGIN + BOARD_WIDTH + BOARD_THICKNESS, 0, BOARD_HEIGHT - 1);
 
-    arena_node score = arena_node_create(MAX_X - 10, 1, &update_score, &score_string);
+    arena_node score = arena_node_create(BOARD_WIDTH - 10, 1, &update_score, &score_string);
     ARENA.nodes = &score;
 
     arena_render_nodes(ARENA);
@@ -114,13 +118,15 @@ void rotate_with_check()
 
     for (int i = 0; i < 4; i++)
     {
-        if (TRANSFORMED_PIECE[i][0] < 1 || TRANSFORMED_PIECE[i][0] >= BOARD_WIDTH)
+        if (TRANSFORMED_PIECE[i][0] < BOARD_BEGIN + BOARD_THICKNESS || TRANSFORMED_PIECE[i][0] >= BOARD_BEGIN + BOARD_WIDTH + BOARD_THICKNESS)
+        {
             return;
+        }
     }
 
     for (int i = 0; i < 4; i++)
     {
-        if (TETRIS_BOARD[TRANSFORMED_PIECE[i][0]][TRANSFORMED_PIECE[i][1] + 1])
+        if (TETRIS_BOARD[TRANSFORMED_PIECE[i][0] - BOARD_BEGIN - BOARD_THICKNESS][TRANSFORMED_PIECE[i][1]])
             return;
     }
 
@@ -133,12 +139,14 @@ bool wall_collision_check(int ch)
 
     for (int i = 0; i < 4; i++)
     {
-        if (TRANSFORMED_PIECE[i][0] < 1 || TRANSFORMED_PIECE[i][0] >= BOARD_WIDTH)
+        if (TRANSFORMED_PIECE[i][0] < BOARD_BEGIN + BOARD_THICKNESS || TRANSFORMED_PIECE[i][0] >= BOARD_BEGIN + BOARD_WIDTH + BOARD_THICKNESS)
+        {
             return true;
+        }
     }
     for (int i = 0; i < 4; i++)
     {
-        if (TETRIS_BOARD[TRANSFORMED_PIECE[i][0]][TRANSFORMED_PIECE[i][1]])
+        if (TETRIS_BOARD[TRANSFORMED_PIECE[i][0] - BOARD_BEGIN - BOARD_THICKNESS][TRANSFORMED_PIECE[i][1]])
             return true;
     }
 
@@ -149,7 +157,7 @@ bool floor_collision_check()
 {
     for (int i = 0; i < 4; i++)
     {
-        if (TETRIS_BOARD[CURRENT_PIECE.shape[i][0]][CURRENT_PIECE.shape[i][1] + 1])
+        if (TETRIS_BOARD[CURRENT_PIECE.shape[i][0] - BOARD_BEGIN - BOARD_THICKNESS][CURRENT_PIECE.shape[i][1] + 1])
             return true;
     }
 
@@ -158,15 +166,8 @@ bool floor_collision_check()
 
 bool move_piece(int ch)
 {
-    if (ch == KEY_LEFT || ch == KEY_RIGHT)
-    {
-        if (wall_collision_check(ch))
-            return false;
-    }
-    else
-    {
+    if (wall_collision_check(ch))
         return false;
-    }
 
     update_piece(false);
     return true;
@@ -175,13 +176,13 @@ bool move_piece(int ch)
 void new_queue()
 {
     CURRENT_PIECE = NEXT_PIECE;
-    NEXT_PIECE = init_tetris_piece(rand() % 7, floor(MAX_X / 2), 2);
+    NEXT_PIECE = init_tetris_piece(rand() % 7, floor(BOARD_WIDTH / 2) + BOARD_BEGIN, 2);
 }
 
 void first_queue()
 {
-    NEXT_PIECE = init_tetris_piece(rand() % 7, floor(MAX_X / 2), 2);
-    CURRENT_PIECE = init_tetris_piece(rand() % 7, floor(MAX_X / 2), 2);
+    NEXT_PIECE = init_tetris_piece(rand() % 7, floor(BOARD_WIDTH / 2) + BOARD_BEGIN, 2);
+    CURRENT_PIECE = init_tetris_piece(rand() % 7, floor(BOARD_WIDTH / 2) + BOARD_BEGIN, 2);
 }
 
 int game_loop()
@@ -192,23 +193,21 @@ int game_loop()
     first_queue();
     update_piece(true);
     timeout(0);
-    bool pause = false;
 
+    bool pause = false;
     int start = (int)clock();
     int end, diff_in_ms;
+
     do
     {
         ch = getch();
-        if (ch == 'q')
-        {
-            endwin();
+        if (ch == 'q' || ch == 'Q')
             return 0;
-        }
 
-        if (ch == 'r')
+        if ((ch == 'r' || ch == 'R') && !pause)
             rotate_with_check();
 
-        if (ch == 'p')
+        if (ch == 'p' || ch == 'P')
         {
             pause = !pause;
             if (pause)
@@ -221,31 +220,35 @@ int game_loop()
             }
         }
 
-        move_piece(ch);
-
-        end = (int)(clock());
-        diff_in_ms = (int)(((double)(end - start) / CLOCKS_PER_SEC) * 1000);
-
-        if (diff_in_ms > (1000 / TICKS_PER_SECOND))
+        if (!pause && (ch == KEY_LEFT || ch == KEY_RIGHT || ch == KEY_DOWN))
         {
-            start = (int)clock();
-            if (floor_collision_check())
+            move_piece(ch);
+
+            end = (int)(clock());
+            diff_in_ms = (int)(((double)(end - start) / CLOCKS_PER_SEC) * 1000);
+
+            if (diff_in_ms > (1000 / TICKS_PER_SECOND))
             {
-                for (int i = 0; i < 4; i++)
+                start = (int)clock();
+                if (floor_collision_check())
                 {
-                    TETRIS_BOARD[CURRENT_PIECE.shape[i][0]][CURRENT_PIECE.shape[i][1]] = 1;
+                    for (int i = 0; i < 4; i++)
+                    {
+                        TETRIS_BOARD[CURRENT_PIECE.shape[i][0] - BOARD_BEGIN - BOARD_THICKNESS][CURRENT_PIECE.shape[i][1]] = 1;
+                    }
+                    new_queue();
+                    update_piece(true);
                 }
-                new_queue();
-                update_piece(true);
-            }
-            else if (!pause)
-            {
-                operation(KEY_DOWN);
-                update_piece(false);
+                else if (!pause)
+                {
+                    operation(KEY_DOWN);
+                    update_piece(false);
+                }
             }
         }
 
         refresh();
+
     } while (true);
 }
 
@@ -254,19 +257,15 @@ int main()
     initialize_ncurses_screen(&MAX_X, &MAX_Y);
 
     BOARD_HEIGHT = MAX_Y;
-    BOARD_WIDTH = MAX_X - 2;
+    BOARD_WIDTH = MAX_X > DESIRED_BOARD_WIDTH + 2 * BOARD_THICKNESS ? DESIRED_BOARD_WIDTH : MAX_X - BOARD_THICKNESS * 2;
+    BOARD_BEGIN = (MAX_X - BOARD_WIDTH - 1) / 2;
+    BOARD_END = (MAX_X - BOARD_WIDTH - 1) / 2;
 
     TETRIS_BOARD = (bool **)malloc(BOARD_WIDTH * sizeof(bool *));
     for (int i = 0; i < BOARD_WIDTH; i++)
         TETRIS_BOARD[i] = (bool *)malloc(BOARD_HEIGHT * sizeof(bool));
 
     initialize_game();
-
-    mvprintw(0, 0, "0");
-    mvprintw(0, MAX_X - 1, "0");
-    mvprintw(MAX_Y - 1, 0, "%d", MAX_Y - 1);
-    mvprintw(MAX_Y - 1, MAX_X - 1, "0");
-    refresh();
 
     game_loop();
     endwin();

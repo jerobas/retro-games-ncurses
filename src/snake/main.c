@@ -9,7 +9,7 @@
 #include "../arena.h"
 
 #define MAX_SCORE 100
-#define TICKS_PER_SECOND 10
+#define TICKS_PER_SECOND 15
 
 int MAX_X,
     MAX_Y;
