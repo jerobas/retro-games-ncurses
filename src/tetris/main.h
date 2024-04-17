@@ -1,3 +1,13 @@
+#include <ncurses.h>
+#include <time.h>
+#include <math.h>
+#include <stdlib.h>
+
+#include "../ncurses-handler.h"
+#include "../arena.h"
+
+#define TICKS_PER_SECOND 5
+
 typedef struct tetris_piece
 {
     int shape[4][2];
