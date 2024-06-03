@@ -1,4 +1,4 @@
-import {getPlayers} from './connection'
+import { getPlayers } from './connection'
 
 export const broadcast = (data: object) => {
     const players = getPlayers()
@@ -9,6 +9,6 @@ export const broadcast = (data: object) => {
             data: data,
             playerId: playerId,
             player: players[playerId]
-        }))
+        }) + '\n')
     }
 }

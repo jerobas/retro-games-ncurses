@@ -1,2 +1,5 @@
 *.o
 .*
+build
+backend/node_modules
+backend/dist

@@ -1,7 +1,7 @@
 import * as net from 'net';
 import { GameConstants } from "./constants";
-import {handleConnection } from './utils/connection';
-import { gameLoop} from './utils/game';
+import { handleConnection } from './utils/connection';
+import { gameLoop } from './utils/game';
 
 const PORT = 8080;
 
