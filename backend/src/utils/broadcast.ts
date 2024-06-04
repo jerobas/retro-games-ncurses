@@ -6,9 +6,13 @@ export const broadcast = (data: object) => {
     for (const playerId in players) {
         players[playerId].socket.write(JSON.stringify({
             type: "broadcast",
-            data: data,
-            playerId: playerId,
-            player: players[playerId]
+            data,
+            player: {
+                id: playerId,
+                snake: players[playerId].snake,
+                score: players[playerId].score,
+                lastDirectory: players[playerId].direction
+            }
         }) + '\n')
     }
 }

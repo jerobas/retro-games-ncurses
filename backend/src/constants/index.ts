@@ -3,4 +3,5 @@ export const GameConstants = {
     MAX_SCORE: 100,
     MAX_X: 20,  
     MAX_Y: 20,
+    MIN_OF_PLAYERS: 2,
 }

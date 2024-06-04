@@ -3,7 +3,7 @@ import * as net from 'net';
 export interface Player {
     id: string;
     snake: number[][];
-    direction: number;
+    direction: string;
     score: number,
     socket: net.Socket
 }
