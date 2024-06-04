@@ -1,7 +1,7 @@
 import * as net from 'net';
 
 export interface Player {
-    id: string;
+    playerId: string;
     snake: number[][];
     direction: string;
     score: number,

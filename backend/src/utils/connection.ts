@@ -9,7 +9,7 @@ export const handleConnection = (socket: net.Socket) => {
   const playerId = uuidV4().toString();
 
   const newPlayer: Player = {
-    id: playerId,
+    playerId,
     snake: [],
     direction: "",
     score: 0,

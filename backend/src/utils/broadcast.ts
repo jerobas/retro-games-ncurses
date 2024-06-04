@@ -7,7 +7,7 @@ export const broadcast = (): void => {
       JSON.stringify({
         type: "broadcast",
         player: {
-          id: player.id,
+          playerId: player.playerId,
           snake: player.snake,
           score: player.score,
           lastDirectory: player.direction,
