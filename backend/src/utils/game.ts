@@ -1,17 +1,28 @@
 import { broadcast } from "../utils/broadcast";
 import { GameConstants } from "../constants";
 import { getPlayers } from "./connection";
+import { Player } from "../interfaces/player";
+import { Request, isValidUUID } from "../interfaces/request";
 
 let gameInterval: NodeJS.Timeout | null = null;
 let finished: boolean = false;
 
-export const gameLoop = () => {
-  broadcast({ name: "flavio" });
+export const gameLoop = (): void => {
+  broadcast();
+};
+
+export const hanldeUpdate = (player: Player | undefined, request: Request): void => {
+  if (isValidUUID(request.playerId)) {
+    if (player && request.type == GameConstants.ACTION) {
+      player.direction = request.direction;
+      player.score += 1;
+    }
+  }
 };
 
 export const handleStart = () => {
-  let players = getPlayers();
-  const playerCount = Object.keys(players).length;
+  const players = getPlayers();
+  const playerCount = players.length;
 
   if (playerCount >= GameConstants.MIN_OF_PLAYERS) {
     if (!gameInterval) {
@@ -26,8 +37,7 @@ export const handleStart = () => {
       finished = true;
     }
     if (playerCount === 1 && finished) {
-      const winnerId = Object.keys(players)[0];
-      const winner = players[winnerId];
+      const winner = players[0];
       winner.socket.write(
         JSON.stringify({ type: "WIN", score: winner.score }) + "\n"
       );

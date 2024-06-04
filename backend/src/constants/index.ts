@@ -4,4 +4,6 @@ export const GameConstants = {
     MAX_X: 20,  
     MAX_Y: 20,
     MIN_OF_PLAYERS: 2,
+    MAX_CONNECTIONS: 100,
+    ACTION: "MOVE"
 }
