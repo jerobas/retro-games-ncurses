@@ -125,17 +125,6 @@ int main()
             sendDirection(sockfd, "LEFT", playerId);
             break;
         }
-
-        // while ((bytes = recv(sockfd, buffer, BUFFER_SIZE - 1, 0)) > 0)
-        // {
-        //     buffer[bytes] = '\0';
-        //     printf("%s", buffer);
-        // }
-        // if (bytes < 0)
-        // {
-        //     perror("Recv failed");
-        //     break;
-        // }
          while (getchar() != '\n');
     }
 

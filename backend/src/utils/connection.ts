@@ -1,5 +1,5 @@
 import { Player } from "../interfaces/player";
-import { handleStart, hanldeUpdate } from "./game";
+import { handleStart, handleStop, hanldeUpdate } from "./game";
 import { v4 as uuidV4 } from "uuid";
 import * as net from "net";
 
@@ -28,13 +28,7 @@ export const handleConnection = (socket: net.Socket) => {
 
   socket.on("end", () => {
     players.delete(playerId);
-    handleStart();
-  });
-
-  socket.on("error", (err) => {
-    console.error(`Error: ${err.message}`);
-    players.delete(playerId);
-    handleStart();
+    handleStop()
   });
 
   handleStart();
