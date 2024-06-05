@@ -1,4 +1,4 @@
-import { validate as validateUuid } from "uuid";
+import { validate as validateUuid } from 'uuid';
 export interface Request {
   type: string;
   playerId: string;
