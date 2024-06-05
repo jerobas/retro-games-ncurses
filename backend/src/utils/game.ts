@@ -1,8 +1,8 @@
-import { broadcast } from "../utils/broadcast";
-import { GameConstants } from "../constants";
-import { getPlayers } from "./connection";
-import { Player } from "../interfaces/player";
-import { Request, isValidUUID } from "../interfaces/request";
+import { broadcast } from '../utils/broadcast';
+import { GameConstants } from '../constants';
+import { getPlayers } from './connection';
+import { isValidUUID, Request } from '../interfaces/request';
+import { Player } from '../interfaces/player';
 
 let gameInterval: NodeJS.Timeout | null = null;
 let finished: boolean = false;

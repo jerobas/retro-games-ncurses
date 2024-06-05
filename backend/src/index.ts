@@ -1,5 +1,5 @@
-import * as net from "net";
-import { handleConnection } from "./utils/connection";
+import * as net from 'net';
+import { handleConnection } from './utils/connection';
 
 const PORT = 8080;
 
