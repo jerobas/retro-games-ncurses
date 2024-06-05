@@ -32,6 +32,8 @@ set(CMAKE_C_FLAGS_RELEASE "-O3")
 set(SOURCES
     src/snake/logic.c
     src/arena.c
+    src/snake/client.c
+    src/snake/cJSON.c
 )
 
 # Link the ncurses library

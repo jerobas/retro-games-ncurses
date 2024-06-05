@@ -1,8 +1,7 @@
 #include "logic.h"
+#include "client.h"
 
-int MAX_X,
-    MAX_Y,
-    (*SNAKE)[MAX_SCORE + 2][2],
+int (*SNAKE)[MAX_SCORE + 2][2],
     *SNAKE_LENGTH,
     *MOVEMENT_DIRECTION,
     SEED[2];
@@ -11,8 +10,23 @@ int KEYS_OF_EACH_PLAYER[2][4] = {{KEY_UP, KEY_LEFT, KEY_DOWN, KEY_RIGHT}, {'w', 
 
 arena ARENA;
 
+struct player_move
+{
+    int player_id;
+    int player_command;
+};
+
+typedef struct player_move player_move;
+
 void (*print_seed)(int[2]);
 void (*render_move_snake)(bool, int[2], int[2]);
+void (*update_score)();
+void (*score_string)();
+int (*char_read)();
+void (*set_char_read_timeout)();
+int (*screen_update)();
+
+int (*game_did_end)(int);
 int (*tick_control)(int *tick_control_params);
 
 // "almost" ready
@@ -41,20 +55,14 @@ int opposite_directions(int direction)
     }
 }
 
-void update_score()
-{
-    // mvprintw(1, MAX_X - 3, "%02d", SNAKE_LENGTH - 2);
-}
-
-void score_string()
-{
-    mvprintw(1, MAX_X - 10, "Score: 00");
-}
-
 void initialize_game(int num_players)
 {
     SNAKE_LENGTH = (int *)malloc(num_players * sizeof(int));
     SNAKE = (int(*)[MAX_SCORE + 2][2]) malloc(num_players * sizeof(int[MAX_SCORE + 2][2]));
+    MOVEMENT_DIRECTION = (int *)malloc(num_players * sizeof(int));
+
+    if (SNAKE_LENGTH == NULL || SNAKE == NULL || MOVEMENT_DIRECTION == NULL)
+        exit(EXIT_FAILURE);
 
     for (int i = 0; i < num_players; i++)
     {
@@ -65,17 +73,11 @@ void initialize_game(int num_players)
             SNAKE[i][j][1] = 2 + (2 * i);
         }
     }
-
-    ARENA = arena_create(0, MAX_X - 1, 0, MAX_Y - 1);
-
-    arena_node score = arena_node_create(MAX_X - 10, 1, &update_score, &score_string);
-    ARENA.nodes = &score;
-
-    arena_render_nodes(ARENA);
-    rectangle(ARENA.left_x, ARENA.right_x, ARENA.top_y, ARENA.bottom_y);
-
-    refresh();
 }
+
+/*
+    ALMOST ALL OF THESE ARE READY
+*/
 
 bool collision_check(int player)
 {
@@ -99,14 +101,18 @@ bool check_all_players(int num_players)
     for (int player = 0; player < num_players; player++)
     {
         if (collision_check(player))
+        {
             return true;
+        }
 
         for (int other_players = player + 1; other_players < num_players; other_players++)
         {
             for (int i = 0; i < SNAKE_LENGTH[other_players]; i++)
             {
                 if (SNAKE[player][0][0] == SNAKE[other_players][i][0] && SNAKE[player][0][1] == SNAKE[other_players][i][1])
+                {
                     return true;
+                }
             }
         }
     }
@@ -131,6 +137,7 @@ bool is_there_seed_in_snake(int player)
     return false;
 }
 
+// should separate the return of this function from it
 bool move_snake(bool grow, int player)
 {
     // exclusive for segment-based printing methods
@@ -168,8 +175,8 @@ void new_seed(int num_players)
 
     do
     {
-        SEED[0] = rand() % (MAX_X - 2) + 1;
-        SEED[1] = rand() % (MAX_Y - 2) + 1;
+        SEED[0] = rand() % (ARENA.right_x - 2) + 1;
+        SEED[1] = rand() % (ARENA.bottom_y - 2) + 1;
 
         for (int i = 0; i < num_players; i++)
         {
@@ -201,6 +208,10 @@ int check_directions(int ch, int num_players)
     }
 }
 
+/*
+    GREAT PROBLEMS AHEAD
+*/
+
 int tick_control_client_side(int *start)
 {
     int end, diff_in_ms;
@@ -215,94 +226,62 @@ int tick_control_client_side(int *start)
     return false;
 }
 
-int tick_control_server_side(int *params)
+void game_loop_cs_player_control(int num_players, int *possible_newch)
 {
-    // to be implemented
-}
-
-int *game_loop_cs_player_control(int num_players)
-{
-    int ch;
-    int possible_newch[num_players];
+    int ch = 0;
     int tick_control_params;
 
     tick_control_params = (int)clock();
-
     do
     {
-        ch = getch();
+        ch = char_read();
 
         if (ch == 'q')
-            cleanup(-1);
+            end_game();
 
-        // if (ch == 'p')
-        //     pause_game();
+        if (ch == 'p')
+            pause_game();
 
         int check = check_directions(ch, num_players);
         if (check != -1)
             possible_newch[check] = ch;
 
     } while (tick_control(&tick_control_params));
-
-    return possible_newch;
 }
 
-int *game_loop_ss_player_control_server(int num_players)
-{
-    int possible_newch[num_players];
-    int tick_control_params;
+// int *game_loop_ss_player_control_server(int num_players)
+// {
+//     int possible_newch[num_players];
+//     int tick_control_params;
 
-    tick_control_params = (int)clock();
+//     tick_control_params = (int)clock();
 
-    do
-    {
+//     // broadcast start of tick
+//     do
+//     {
+//         player_move player_move = check_message(num_players);
+//         if (player_move.player_id > 0 && player_move.player_id < num_players)
+//             possible_newch[player_move.player_id] = player_move.player_command;
+//     } while (tick_control(&tick_control_params));
+//     // broadcast end of tick
 
-    } while (tick_control(&tick_control_params));
-    // broadcast end of tick
-    // await for new possible_ch
-
-    return possible_newch;
-}
-
-void game_loop_ss_player_control_client(bool (*does_tick_ended)(), void (*ch_broadcast)(int possible_newch))
-{
-    int ch;
-    int possible_newch;
-
-    do
-    {
-        ch = getch();
-
-        if (ch == 'q')
-            cleanup(-1);
-
-        // if (ch == 'p')
-        //     pause_game();
-
-        int check = check_directions(ch, 1);
-        if (check != -1)
-            possible_newch = ch;
-
-    } while (does_tick_ended());
-
-    ch_broadcast(possible_newch);
-}
+//     return possible_newch;
+// }
 
 void game_loop(int num_players)
 {
     srand(time(0));
     new_seed(num_players);
-    timeout(0);
 
     bool generate_new_seed = false;
     bool grow[num_players];
     int checked_collision = false;
+
     int possible_newch[num_players];
 
-    MOVEMENT_DIRECTION = (int *)malloc(num_players * sizeof(int));
     for (int i = 0; i < num_players; i++)
     {
-        MOVEMENT_DIRECTION[i] = KEYS_OF_EACH_PLAYER[i][1];
+        MOVEMENT_DIRECTION[i] = KEYS_OF_EACH_PLAYER[i][3];
         possible_newch[i] = KEYS_OF_EACH_PLAYER[i][3];
         grow[i] = false;
     }
@@ -313,7 +292,7 @@ void game_loop(int num_players)
         if (check_all_players(num_players))
             end_game();
 
-        possible_newch = game_loop_player_control(num_players);
+        game_loop_cs_player_control(num_players, possible_newch);
 
         for (int i = 0; i < num_players; i++)
         {
@@ -324,25 +303,30 @@ void game_loop(int num_players)
         if (generate_new_seed)
             new_seed(num_players);
 
-        refresh();
+        screen_update();
     } while (true);
 }
 
+/*
+    PRETTY NECESSARY
+    TIMEOUT AND ENDWIN SHOULD BE REMOVED, AS THEY ARE NCURSES EXCLUSIVE
+*/
+
 void end_game()
 {
-    timeout(-1);
-    refresh();
-    int c = getch();
+    set_char_read_timeout(-1);
+    screen_update();
+    int c = char_read();
     cleanup(0);
 }
 
 void pause_game()
 {
-    timeout(-1);
-    refresh();
-    int c = getch();
-    timeout(0);
-    refresh();
+    set_char_read_timeout(-1);
+    screen_update();
+    int c = char_read();
+    set_char_read_timeout(0);
+    screen_update();
 }
 
 void cleanup(int result)
@@ -350,6 +334,6 @@ void cleanup(int result)
     free(SNAKE);
     free(SNAKE_LENGTH);
     free(MOVEMENT_DIRECTION);
-    endwin();
+    game_did_end(0);
     exit(0);
 }

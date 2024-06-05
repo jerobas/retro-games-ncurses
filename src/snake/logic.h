@@ -9,11 +9,9 @@
 #include "../arena.h"
 
 #define MAX_SCORE 100
-#define TICKS_PER_SECOND 5
+#define TICKS_PER_SECOND 13
 
-extern int MAX_X,
-    MAX_Y,
-    (*SNAKE)[MAX_SCORE + 2][2],
+extern int (*SNAKE)[MAX_SCORE + 2][2],
     *SNAKE_LENGTH,
     *MOVEMENT_DIRECTION,
     SEED[2],
@@ -24,12 +22,14 @@ extern arena ARENA;
 extern void (*print_seed)(int[2]);
 extern void (*render_move_snake)(bool, int[2], int[2]);
 extern int (*tick_control)(int *tick_control_params);
+extern int (*game_did_end)(int winner);
+extern int (*char_read)();
+extern void (*set_char_read_timeout)();
+extern int (*screen_update)();
+extern void (*update_score)();
+extern void (*score_string)();
 
 int opposite_directions(int direction);
-
-void update_score();
-
-void score_string();
 
 void initialize_game(int num_players);
 
@@ -56,5 +56,3 @@ void pause_game();
 void cleanup(int result);
 
 int tick_control_client_side(int *start);
-
-int tick_control_server_side(int *params);

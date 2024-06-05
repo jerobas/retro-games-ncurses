@@ -1,11 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include "cJSON.h"
+#include "client.h"
 
-#define BUFFER_SIZE 1024
+int sockfd;
 
 void sendDirection(int sockfd, char *direction, char *playerId)
 {
@@ -43,10 +38,9 @@ void sendDirection(int sockfd, char *direction, char *playerId)
     free(string_arquivo);
 }
 
-int main()
+char *handle_connection()
 {
-    int sockfd;
-    char playerId[37];
+    char *playerId = (char *)malloc(37 * sizeof(char));
     struct sockaddr_in server_addr;
     char buffer[BUFFER_SIZE];
 
@@ -61,7 +55,7 @@ int main()
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8080);
 
-    if (inet_pton(AF_INET, "192.168.100.4", &server_addr.sin_addr) <= 0)
+    if (inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0)
     {
         perror("Invalid address");
         close(sockfd);
@@ -100,34 +94,14 @@ int main()
         close(sockfd);
         exit(EXIT_FAILURE);
     }
-    strncpy(playerId, uuid_json->valuestring, sizeof(playerId) - 1);
-    playerId[sizeof(playerId) - 1] = '\0';
+    strcpy(playerId, uuid_json->valuestring);
 
     cJSON_Delete(response_json);
 
-    while (1)
-    {
-        char ch = getchar();
-        if (ch == '\n')
-            continue;
-        switch (ch)
-        {
-        case 'w':
-            sendDirection(sockfd, "UP", playerId);
-            break;
-        case 's':
-            sendDirection(sockfd, "DOWN", playerId);
-            break;
-        case 'd':
-            sendDirection(sockfd, "RIGHT", playerId);
-            break;
-        case 'a':
-            sendDirection(sockfd, "LEFT", playerId);
-            break;
-        }
-         while (getchar() != '\n');
-    }
+    return playerId;
+}
 
+void handle_close_socket()
+{
     close(sockfd);
-    return 0;
 }

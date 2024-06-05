@@ -19,6 +19,7 @@ export const hanldeUpdate = (
     if (player && request.type == GameConstants.ACTION) {
       player.direction = request.direction;
       player.score += 1;
+      console.log(player.direction, player.score);
     }
   }
 };
