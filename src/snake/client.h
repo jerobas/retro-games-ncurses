@@ -11,9 +11,11 @@
 #define BUFFER_SIZE 1024
 
 extern int sockfd;
+extern char bufferCheck[BUFFER_SIZE];
 
-extern void sendDirection(int sockfd, char *direction, char *playerId);
+extern void sendDirection(char *direction, char *playerId);
 extern void handle_close_socket();
 extern char *handle_connection();
+extern int checkConnection();
 
 #endif

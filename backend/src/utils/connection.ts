@@ -19,7 +19,6 @@ export const handleConnection = (socket: net.Socket) => {
   players.set(playerId, newPlayer);
 
   socket.write(JSON.stringify({ playerId: playerId }));
-  console.log(playerId);
 
   socket.on("data", (data: string) => {
     const request = JSON.parse(data);

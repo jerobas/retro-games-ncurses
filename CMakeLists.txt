@@ -40,6 +40,7 @@ set(SOURCES
 if(CMAKE_BUILD_TYPE STREQUAL "ncurses")
   list(APPEND SOURCES
       src/snake/ncurses/graphics.c
+      src/snake/ncurses/client.c
       src/snake/ncurses/main.c
       src/ncurses-handler.c
   )

@@ -1,3 +1,5 @@
+#ifndef LOGIC
+#define LOGIC
 #include <ncurses.h>
 #include <signal.h>
 #include <poll.h>
@@ -56,3 +58,4 @@ void pause_game();
 void cleanup(int result);
 
 int tick_control_client_side(int *start);
+#endif

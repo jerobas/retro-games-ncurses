@@ -1,7 +1,10 @@
 #include "../client.h"
 #include "client.h"
+#include "../logic.h"
 
-int opposite_directions(int direction)
+int KEYS_OF_EACH_PLAYER[4] = {KEY_UP, KEY_LEFT, KEY_DOWN, KEY_RIGHT};
+
+int opposite_directions_client(int direction)
 {
     switch (direction)
     {
@@ -26,27 +29,27 @@ int opposite_directions(int direction)
     }
 }
 
-int check_directions(int ch)
+int check_directions_client(int ch)
 {
     bool is_player_key = false;
     for (int j = 0; j < 4; j++)
     {
         if (ch == KEYS_OF_EACH_PLAYER[j])
         {
-            return (opposite_directions(ch) == MOVEMENT_DIRECTION[i]) ? -1 : i;
+            return (opposite_directions(ch) == MOVEMENT_DIRECTION[0]) ? -1 : 0;
             break;
         }
     }
 }
 
-void move_snake_client(bool grow, int player, int *new_snake, int snake_length)
+void move_snake_client(bool grow, int player, int **new_snake, int snake_length)
 {
     // exclusive for segment-based printing methods
     int old_last_snake_segment[2] = {SNAKE[snake_length - 1][0], SNAKE[snake_length - 1][1]};
 
     if (grow)
     {
-        update_score();
+        // update_score();
         render_new_seed();
     }
 
@@ -56,7 +59,7 @@ void move_snake_client(bool grow, int player, int *new_snake, int snake_length)
     render_move_snake(grow, old_last_snake_segment, new_first_snake_segment);
 }
 
-void game_loop_ss_player_control_client(bool (*does_tick_ended)(), void(*ch_broadcast))
+void game_loop_ss_player_control_client(char *playerId)
 {
     int ch;
     int possible_newch;
@@ -65,13 +68,23 @@ void game_loop_ss_player_control_client(bool (*does_tick_ended)(), void(*ch_broa
     {
         ch = char_read();
 
-        int check = check_directions(ch, 1);
+        int check = check_directions_client(ch, 1);
         if (check != -1)
             possible_newch = ch;
 
-    } while (does_tick_ended());
+    } while (checkConnection() != 0);
 
-    ch_broadcast(possible_newch);
+    switch (possible_newch)
+    {
+    case KEY_UP:
+        sendDirection("UP", playerId);
+    case KEY_DOWN:
+        sendDirection("DOWN", playerId);
+    case KEY_LEFT:
+        sendDirection("LEFT", playerId);
+    case KEY_RIGHT:
+        sendDirection("RIGHT", playerId);
+    }
 }
 
 void game_loop_client(int num_players, char *playerId)
@@ -84,18 +97,13 @@ void game_loop_client(int num_players, char *playerId)
 
     do
     {
-        game_loop_ss_player_control_client(num_players);
-
-        do
-        {
-            int server_response = awaiting_server_response();
-        } while (no_server_response());
+        game_loop_ss_player_control_client(playerId);
 
         for (int i = 0; i < num_players; i++)
         {
-            move_snake(grow[i], i);
+            move_snake_client(grow[i], i);
         }
-    } while (check_win_client());
+    } while (true);
 
     end_game_client();
 }

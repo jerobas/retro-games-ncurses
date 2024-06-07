@@ -47,9 +47,19 @@ export const handleStart = (): void => {
 
   if (playerCount >= GameConstants.MIN_OF_PLAYERS) {
     if (!gameInterval) {
+      // Envia para todos os players que o game comecou
+      players.forEach(player => player.socket.write('true'))
+
+      // entra no loop do game e avisa os jogadores a cada tick
       gameInterval = setInterval(() => {
         gameLoop();
       }, 1000 / GameConstants.TICKS_PER_SECOND);
     }
+  }
+
+  // se tiver 1 player espernado, fica chamando a handleStart para ver quando pode comecar o jogo
+  if (playerCount && playerCount == 1) {
+    players[0].socket.write('wait')
+    setTimeout(handleStart, 1000);
   }
 };

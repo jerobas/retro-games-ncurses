@@ -1,8 +1,21 @@
 #include "client.h"
 
 int sockfd;
+char bufferCheck[BUFFER_SIZE];
 
-void sendDirection(int sockfd, char *direction, char *playerId)
+int checkConnection()
+{
+    int bytes = recv(sockfd, bufferCheck, BUFFER_SIZE - 1, 0);
+    if (bytes == 4)
+    {
+        bufferCheck[5] = '\0';
+        if (strcmp(bufferCheck, "true") == 0)
+            return 0;
+    }
+    return 1;
+}
+
+void sendDirection(char *direction, char *playerId)
 {
     cJSON *arquivo = cJSON_CreateObject();
     if (arquivo == NULL)
