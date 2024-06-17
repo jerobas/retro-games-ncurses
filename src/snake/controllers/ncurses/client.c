@@ -1,46 +1,9 @@
 #include "../client.h"
 #include "client.h"
 #include "../logic.h"
+#include "graphics.h"
 
-int KEYS_OF_EACH_PLAYER[4] = {KEY_UP, KEY_LEFT, KEY_DOWN, KEY_RIGHT};
-
-int opposite_directions_client(int direction)
-{
-    switch (direction)
-    {
-    case KEY_UP:
-        return KEY_DOWN;
-    case KEY_DOWN:
-        return KEY_UP;
-    case KEY_LEFT:
-        return KEY_RIGHT;
-    case KEY_RIGHT:
-        return KEY_LEFT;
-    case 'w':
-        return 's';
-    case 's':
-        return 'w';
-    case 'a':
-        return 'd';
-    case 'd':
-        return 'a';
-    default:
-        return -1;
-    }
-}
-
-int check_directions_client(int ch)
-{
-    bool is_player_key = false;
-    for (int j = 0; j < 4; j++)
-    {
-        if (ch == KEYS_OF_EACH_PLAYER[j])
-        {
-            return (opposite_directions(ch) == MOVEMENT_DIRECTION[0]) ? -1 : 0;
-            break;
-        }
-    }
-}
+int KEYS_OF_EACH_PLAYER_CLIENT[4] = {KEY_UP, KEY_LEFT, KEY_DOWN, KEY_RIGHT};
 
 void move_snake_client(bool grow, int player, int **new_snake, int snake_length)
 {
@@ -50,7 +13,7 @@ void move_snake_client(bool grow, int player, int **new_snake, int snake_length)
     if (grow)
     {
         // update_score();
-        render_new_seed();
+        print_seed_ncurses();
     }
 
     // exclusive for segment-based printing methods
@@ -68,7 +31,7 @@ void game_loop_ss_player_control_client(char *playerId)
     {
         ch = char_read();
 
-        int check = check_directions_client(ch, 1);
+        int check = check_directions(ch, 1);
         if (check != -1)
             possible_newch = ch;
 

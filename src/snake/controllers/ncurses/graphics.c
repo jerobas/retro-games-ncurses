@@ -1,5 +1,4 @@
 #include "graphics.h"
-#include "../../arena.h"
 
 void print_seed_ncurses(int new_seed_coordinates[2])
 {

@@ -6,7 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include "cJSON.h"
+#include "../../lib/cJSON.h"
 
 #define BUFFER_SIZE 1024
 

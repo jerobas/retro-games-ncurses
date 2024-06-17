@@ -1,5 +1,5 @@
 #include "logic.h"
-#include "client.h"
+#include "../utils/client.h"
 
 int (*SNAKE)[MAX_SCORE + 2][2],
     *SNAKE_LENGTH,

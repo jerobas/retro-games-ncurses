@@ -1,0 +1,1 @@
+extern int KEYS_OF_EACH_PLAYER;

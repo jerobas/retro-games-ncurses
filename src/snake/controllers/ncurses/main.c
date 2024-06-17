@@ -1,5 +1,5 @@
-#include "../logic.h"
-#include "../client.h"
+#include "../../services/logic.h"
+#include "../../utils/client.h"
 #include "client.h"
 #include "graphics.h"
 

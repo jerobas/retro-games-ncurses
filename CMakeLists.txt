@@ -30,18 +30,18 @@ set(CMAKE_C_FLAGS_RELEASE "-O3")
 
 # Add the source files
 set(SOURCES
-    src/snake/logic.c
+    src/snake/services/logic.c
     src/arena.c
-    src/snake/client.c
-    src/snake/cJSON.c
+    src/snake/utils/client.c
+    src/lib/cJSON.h
 )
 
 # Link the ncurses library
 if(CMAKE_BUILD_TYPE STREQUAL "ncurses")
   list(APPEND SOURCES
-      src/snake/ncurses/graphics.c
-      src/snake/ncurses/client.c
-      src/snake/ncurses/main.c
+      src/snake/controllers/ncurses/graphics.c
+      src/snake/controllers/ncurses/client.c
+      src/snake/controllers/ncurses/main.c
       src/ncurses-handler.c
   )
 
@@ -57,4 +57,3 @@ add_executable(snake ${SOURCES})
 if(CMAKE_BUILD_TYPE STREQUAL "ncurses")
   target_link_libraries(snake ${CURSES_LIBRARIES})
 endif()
-

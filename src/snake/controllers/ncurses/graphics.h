@@ -1,5 +1,5 @@
 #include <ncurses.h>
-#include "../../arena.h"
+#include "../../../arena.h"
 
 extern int MAX_X,
     MAX_Y;

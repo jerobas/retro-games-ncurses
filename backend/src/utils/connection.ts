@@ -20,8 +20,8 @@ export const handleConnection = (socket: net.Socket) => {
 
   socket.write(JSON.stringify({ playerId: playerId }));
 
-  socket.on("data", (data: string) => {
-    const request = JSON.parse(data);
+  socket.on("data", (data: Buffer) => {
+    const request = JSON.parse(data.toString());
     const player = players.get(request.playerId);
     hanldeUpdate(player, request);
   });

@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "../ncurses-handler.h"
-#include "../arena.h"
+#include "../../ncurses-handler.h"
+#include "../../arena.h"
 
 #define MAX_SCORE 100
 #define TICKS_PER_SECOND 13
