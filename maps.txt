@@ -1,4 +1,4 @@
-// client to server - update
+// client to server
 
 req = {
     join: true
