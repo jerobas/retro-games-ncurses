@@ -3,8 +3,6 @@
 #include "../logic.h"
 #include "graphics.h"
 
-int KEYS_OF_EACH_PLAYER_CLIENT[4] = {KEY_UP, KEY_LEFT, KEY_DOWN, KEY_RIGHT};
-
 void move_snake_client(bool grow, int player, int **new_snake, int snake_length)
 {
     // exclusive for segment-based printing methods
@@ -40,23 +38,19 @@ void game_loop_ss_player_control_client(char *playerId)
     switch (possible_newch)
     {
     case KEY_UP:
-        sendDirection("UP", playerId);
+        sendDirection(0, playerId);
     case KEY_DOWN:
-        sendDirection("DOWN", playerId);
+        sendDirection(1, playerId);
     case KEY_LEFT:
-        sendDirection("LEFT", playerId);
+        sendDirection(2, playerId);
     case KEY_RIGHT:
-        sendDirection("RIGHT", playerId);
+        sendDirection(3, playerId);
     }
 }
 
-void game_loop_client(int num_players, char *playerId)
+void game_loop_client(char *playerId)
 {
-    bool grow[num_players];
-    for (int i = 0; i < num_players; i++)
-    {
-        grow[i] = false;
-    }
+    await_initial_state();
 
     do
     {
@@ -76,12 +70,6 @@ void end_game_client()
     set_char_read_timeout(-1);
     screen_update();
     int c = char_read();
-    cleanup_client(0);
-}
-
-void cleanup_client(int result)
-{
-    free(MOVEMENT_DIRECTION);
     game_did_end(0);
     exit(0);
 }

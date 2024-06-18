@@ -48,28 +48,7 @@ int main()
         initialize_ncurses_screen(&MAX_X, &MAX_Y);
         timeout(0);
 
-        int i = 0;
-        while (1)
-        {
-            int server_response = checkConnection();
-            if (server_response < 0)
-            {
-                // error
-            }
-
-            if (server_response == 0)
-                break;
-            if (server_response == 1)
-            {
-                mvprintw(0, 0, "waiting for connection");
-                for (int j = 0; j < 3; j++)
-                {
-                    mvprintw(0, 22 + j, j <= i ? "." : " ");
-                }
-                i = (i + 1) % 3;
-                refresh();
-            }
-        }
+        await_game_start();
 
         ARENA = arena_create(0, MAX_X - 1, 0, MAX_Y - 1);
         arena_node score = arena_node_create(MAX_X - 10, 1, update_score, score_string);
