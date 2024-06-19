@@ -248,9 +248,41 @@ void await_game_start()
 /// @brief Awaits the game's initial state from the server
 void await_initial_state(int **players_state)
 {
-    cJSON *response_json = receive_json();
+    cJSON *response_json = receive_json(-1);
 
     if (response_json == NULL || !cJSON_IsObject(response_json) || response_json->child == NULL)
+    {
+        fprintf(stderr, "Invalid JSON\n");
+        cJSON_Delete(response_json);
+        handle_close_socket();
+        exit(EXIT_FAILURE);
+    }
+
+    int num_players = cJSON_GetArraySize(response_json);
+    players_state = (int **)malloc(num_players * 3 * sizeof(int *));
+
+    cJSON *next_node;
+    int i = 0;
+    do
+    {
+        cJSON *next_node = response_json->child;
+        players_state[i][0] = next_node->string;
+        players_state[i][1] = cJSON_GetArrayItem(next_node, 0)->valueint;
+        players_state[i][2] = cJSON_GetArrayItem(next_node, 1)->valueint;
+    } while (next_node != NULL);
+
+    cJSON_Delete(response_json);
+    cJSON_Delete(next_node);
+}
+
+bool check_tick_ended(int **players_state)
+{
+    cJSON *response_json = receive_json(0);
+
+    if (response_json == NULL)
+        return false;
+
+    if (!cJSON_IsObject(response_json) || response_json->child == NULL)
     {
         fprintf(stderr, "Invalid JSON\n");
         cJSON_Delete(response_json);
