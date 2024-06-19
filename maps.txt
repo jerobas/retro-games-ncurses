@@ -1,0 +1,32 @@
+// client to server
+
+req = {
+    join: true
+}
+
+res = {
+    flag: ok, UUID
+}
+
+res = {
+    start
+}
+
+
+// server to client
+res = {
+    UUID: {
+        initial_position,
+    }
+}
+
+req = { ok }
+res = { next_tick }
+req = { playerID: UUID, next_move: string }
+res = { next_tick, {
+    UUID: {
+        grow,
+        snake
+    }
+} }
+
