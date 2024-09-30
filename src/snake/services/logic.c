@@ -96,13 +96,15 @@ bool collision_check(int player)
     return false;
 }
 
-bool check_all_players(int num_players)
+int check_all_players(int num_players)
 {
+    int i = 0;
     for (int player = 0; player < num_players; player++)
     {
         if (collision_check(player))
         {
-            return true;
+            i++;
+            break;
         }
 
         for (int other_players = player + 1; other_players < num_players; other_players++)
@@ -111,12 +113,14 @@ bool check_all_players(int num_players)
             {
                 if (SNAKE[player][0][0] == SNAKE[other_players][i][0] && SNAKE[player][0][1] == SNAKE[other_players][i][1])
                 {
-                    return true;
+                    i++;
+                    break;
                 }
             }
         }
     }
-    return false;
+
+    return i;
 }
 
 bool is_there_seed(int check_location[2])
@@ -268,6 +272,15 @@ void game_loop_cs_player_control(int num_players, int *possible_newch)
 //     return possible_newch;
 // }
 
+int handle_player_death(int num_players, int num_players_died)
+{
+    int new_num_players = num_players - num_players_died;
+    if (new_num_players <= 1)
+        return -1;
+
+    return new_num_players;
+}
+
 void game_loop(int num_players)
 {
     srand(time(0));
@@ -289,8 +302,9 @@ void game_loop(int num_players)
     do
     {
         generate_new_seed = false;
-        if (check_all_players(num_players))
-            end_game();
+        num_players = handle_player_death(num_players, check_all_players(num_players));
+        if (num_players == -1)
+            return end_game();
 
         game_loop_cs_player_control(num_players, possible_newch);
 
@@ -306,11 +320,6 @@ void game_loop(int num_players)
         screen_update();
     } while (true);
 }
-
-/*
-    PRETTY NECESSARY
-    TIMEOUT AND ENDWIN SHOULD BE REMOVED, AS THEY ARE NCURSES EXCLUSIVE
-*/
 
 void end_game()
 {

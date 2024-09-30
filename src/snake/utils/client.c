@@ -1,59 +1,20 @@
 #include "client.h"
-#include "../types/types.c"
 
 int sockfd;
 char bufferCheck[BUFFER_SIZE];
+uuid playerId;
 
-/// @brief Creates a cJSON object (error handling included)
-/// @return cJSON object
-cJSON *create_cJSON()
-{
-    cJSON *json = cJSON_CreateObject();
-    if (json == NULL)
-    {
-        fprintf(stderr, "Failed to create JSON object\n");
-        close(sockfd);
-        exit(EXIT_FAILURE);
-    }
-
-    return json;
-}
-
-/// @brief Stringifies a cJSON object (error handling included)
-/// @param cJSON json
-/// @return char* JSON string
-char *stringify_cJSON(cJSON *json)
-{
-    char *json_string = cJSON_PrintUnformatted(json);
-    if (json_string == NULL)
-    {
-        fprintf(stderr, "Failed to print JSON\n");
-        cJSON_Delete(json);
-        handle_close_socket();
-        exit(EXIT_FAILURE);
-    }
-}
-
-//
-// functions above probably should be in a separate file
-//
-
-/// @brief Closes the socket connection
-void handle_close_socket()
-{
-    close(sockfd);
-}
-
-/// @brief Starts the socket connection with the server
 void handle_socket_connection()
 {
     struct sockaddr_in server_addr;
+
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
     }
+    add_cleanup_function(handle_close_socket);
 
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
@@ -62,16 +23,21 @@ void handle_socket_connection()
     if (inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr) <= 0)
     {
         perror("Invalid address");
-        handle_close_socket();
+        cleanup_with_error(EXIT_FAILURE);
         exit(EXIT_FAILURE);
     }
 
     if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("Connection failed");
-        handle_close_socket();
+        cleanup_with_error(EXIT_FAILURE);
         exit(EXIT_FAILURE);
     }
+}
+
+void handle_close_socket()
+{
+    close(sockfd);
 }
 
 // separator
@@ -81,24 +47,23 @@ void send_string(char *string)
     if (send(sockfd, string, strlen(string), 0) < 0)
     {
         perror("Send failed");
-        // free(string);
-        handle_close_socket();
+        cleanup_with_error(EXIT_FAILURE);
         exit(EXIT_FAILURE);
     }
 }
-
 void send_json(cJSON *json)
 {
+    char str[(int)(ceil(log10(num)) + 1)];
+    sprintf(str, "%d", playerId);
+    cJSON_AddStringToObject(json, "playerId", str);
+
     char *json_string = stringify_cJSON(json);
 
     send_string(json_string);
-
-    cJSON_Delete(json);
-    free(json_string);
 }
 
-/// @brief  Sends a flag to the server (error handling included)
-/// @param char* flag
+// separator
+
 void send_flag(char *flag)
 {
     cJSON *json = create_cJSON();
@@ -106,9 +71,9 @@ void send_flag(char *flag)
     cJSON_AddStringToObject(json, "flag", flag);
 
     send_json(json);
+    delete_cJSON(json);
 }
 
-/// @brief Sends a connection intention to the server
 void send_connection_intention()
 {
     send_flag("join");
@@ -116,8 +81,6 @@ void send_connection_intention()
 
 // separator
 
-/// @brief Receives a cJSON object from the server (error handling included)
-/// @return cJSON* JSON object
 cJSON *receive_json(int timeout)
 {
     int bytes;
@@ -136,7 +99,7 @@ cJSON *receive_json(int timeout)
     if (bytes <= 0)
     {
         perror("Failed to receive JSON");
-        handle_close_socket();
+        cleanup_with_error(EXIT_FAILURE);
         exit(EXIT_FAILURE);
     }
     buffer[bytes] = '\0';
@@ -145,19 +108,15 @@ cJSON *receive_json(int timeout)
     if (response_json == NULL)
     {
         fprintf(stderr, "Failed to parse JSON\n");
-        handle_close_socket();
+        cleanup_with_error(EXIT_FAILURE);
         exit(EXIT_FAILURE);
     }
 
     return response_json;
 }
 
-/// @brief Receives a UUID from the server
-/// @return uuid playerId
-uuid receive_uuid()
+void receive_uuid()
 {
-    uuid playerId;
-
     cJSON *response_json = receive_json(2000);
 
     cJSON *uuid_json = cJSON_GetObjectItem(response_json, "playerId");
@@ -165,10 +124,10 @@ uuid receive_uuid()
     {
         fprintf(stderr, "Invalid UUID in JSON\n");
         cJSON_Delete(response_json);
-        handle_close_socket();
+        cleanup_with_error(EXIT_FAILURE);
         exit(EXIT_FAILURE);
     }
-    playerId = (uuid *)uuid_json->valuestring;
+    playerId = (uuid *)atoi(uuid_json->valuestring);
 
     cJSON_Delete(response_json);
     cJSON_Delete(uuid_json);
@@ -185,7 +144,7 @@ bool check_if_flag_was_received(char *flag)
     {
         fprintf(stderr, "Invalid flag in JSON\n");
         cJSON_Delete(response_json);
-        handle_close_socket();
+        cleanup_with_error(EXIT_FAILURE);
         exit(EXIT_FAILURE);
     }
 
@@ -197,41 +156,35 @@ bool check_if_flag_was_received(char *flag)
     return result;
 }
 
-/// @brief Handles the connection with the server
-/// @return uuid playerId
-uuid handle_connection()
+void handle_connection()
 {
-    uuid playerId;
-
     handle_socket_connection();
 
     send_connection_intention();
 
-    return receive_uuid();
+    receive_uuid();
 }
 
-/// @brief Awaits the game start signal from the server
 void await_game_start()
 {
     cJSON *response_json = receive_json(-1);
-
     cJSON *game_start_json = cJSON_GetObjectItem(response_json, "flag");
 
     if (!cJSON_IsString(game_start_json))
     {
         fprintf(stderr, "Invalid flag in JSON\n");
         cJSON_Delete(response_json);
-        handle_close_socket();
+        cleanup_with_error(EXIT_FAILURE);
         exit(EXIT_FAILURE);
     }
 
-    char *flag = uuid_json->valuestring;
+    char *flag = game_start_json->valuestring;
 
-    if (strcmp(flag, "start") == 0)
-        break;
+    // NOTE: we need to decide what do to with this part of the code
+    if (strcmp(flag, "start") != 0)
+        ;
 
-    cJSON_Delete(response_json);
-    cJSON_Delete(uuid_json);
+    cJSON_Delete(game_start_json);
 
     // if (server_response == 1)
     // {
@@ -245,37 +198,45 @@ void await_game_start()
     // }
 }
 
-/// @brief Awaits the game's initial state from the server
-void await_initial_state(int **players_state)
+players_state await_initial_state()
 {
     cJSON *response_json = receive_json(-1);
+    players_state players_state;
 
     if (response_json == NULL || !cJSON_IsObject(response_json) || response_json->child == NULL)
     {
         fprintf(stderr, "Invalid JSON\n");
         cJSON_Delete(response_json);
-        handle_close_socket();
+        cleanup_with_error(EXIT_FAILURE);
         exit(EXIT_FAILURE);
     }
 
     int num_players = cJSON_GetArraySize(response_json);
-    players_state = (int **)malloc(num_players * 3 * sizeof(int *));
 
-    cJSON *next_node;
-    int i = 0;
+    cJSON *current_node = response_json->child;
+    players_state_list_node *current_player_node = (players_state_list_node *)malloc(sizeof(players_state_list_node));
     do
     {
-        cJSON *next_node = response_json->child;
-        players_state[i][0] = next_node->string;
-        players_state[i][1] = cJSON_GetArrayItem(next_node, 0)->valueint;
-        players_state[i][2] = cJSON_GetArrayItem(next_node, 1)->valueint;
-    } while (next_node != NULL);
+        current_player_node.player.playerId = current_node->string;
+        current_player_node.player.x = cJSON_GetArrayItem(current_node, 0)->valueint;
+        current_player_node.player.y = cJSON_GetArrayItem(current_node, 1)->valueint;
+
+        cJSON *current_node = current_node->next;
+        if (current_node == NULL)
+            break;
+
+        players_state_list_node *new_player_node = (players_state_list_node *)malloc(sizeof(players_state_list_node));
+        current_player_node->next = new_player_node;
+    } while (current_node != NULL);
+
+    players_state.num_players = num_players;
 
     cJSON_Delete(response_json);
-    cJSON_Delete(next_node);
+
+    return players_state;
 }
 
-bool check_tick_ended(int **players_state)
+bool check_tick_ended(players_state *players_state)
 {
     cJSON *response_json = receive_json(0);
 
@@ -286,25 +247,39 @@ bool check_tick_ended(int **players_state)
     {
         fprintf(stderr, "Invalid JSON\n");
         cJSON_Delete(response_json);
-        handle_close_socket();
+        cleanup_with_error(EXIT_FAILURE);
         exit(EXIT_FAILURE);
     }
 
-    int num_players = cJSON_GetArraySize(response_json);
-    players_state = (int **)malloc(num_players * 3 * sizeof(int *));
+    cJSON *players_update = response_json.cJSON_GetObjectItem("players_update");
 
-    cJSON *next_node;
-    int i = 0;
+    players_state_list_node *current_player_node = (players_state_list_node *)malloc(sizeof(players_state_list_node));
+
     do
     {
-        cJSON *next_node = response_json->child;
-        players_state[i][0] = next_node->string;
-        players_state[i][1] = cJSON_GetArrayItem(next_node, 0)->valueint;
-        players_state[i][2] = cJSON_GetArrayItem(next_node, 1)->valueint;
-    } while (next_node != NULL);
+        cJSON *current_node = cJSON_GetObjectItem(players_update, current_player_node->player.playerId);
+        cJSON *current_node_snake = cJSON_GetObjectItem(current_node, "snake");
+        int current_node_snake_size = cJSON_GetArraySize(current_node_snake);
+
+        current_player_node.player.snake = malloc(sizeof(int *) * 2 * current_node_snake_size);
+
+        for (int i = 0; i < current_node_snake_size; i++)
+        {
+            current_player_node.player.snake[i][0] = cJSON_GetArrayItem(cJSON_GetArrayItem(current_node_snake, i), 0)->valueint;
+            current_player_node.player.snake[i][1] = cJSON_GetArrayItem(cJSON_GetArrayItem(current_node_snake, i), 1)->valueint;
+        }
+
+        current_player_node.player.playerId = current_node->string;
+        current_player_node.player.grow = cJSON_GetObjectItem(current_node, "grow")->valuebool;
+        current_player_node.player.alive = cJSON_GetObjectItem(current_node, "alive")->valuebool;
+
+        current_player_node = current_player_node->next;
+    } while (current_player_node != NULL);
 
     cJSON_Delete(response_json);
-    cJSON_Delete(next_node);
+
+    return players_state;
+    return true;
 }
 
 void await_first_tick_flag()
@@ -313,27 +288,13 @@ void await_first_tick_flag()
         ;
 }
 
-/// @brief Sends a movement command with it's direction to the server
-/// @param int direction
-/// @param char* playerId
-void send_direction(int direction, char *playerId)
+void send_direction(int direction)
 {
     cJSON *json = create_cJSON();
 
-    cJSON_AddStringToObject(json, "playerId", playerId);
     cJSON_AddStringToObject(json, "next_move", direction_string(direction));
 
-    char *json_string = stringify_cJSON(json);
-
-    if (send(sockfd, json_string, strlen(json_string), 0) < 0)
-    {
-        perror("Send failed");
-        cJSON_Delete(json);
-        free(json_string);
-        handle_close_socket();
-        exit(EXIT_FAILURE);
-    }
+    send_json(json);
 
     cJSON_Delete(json);
-    free(json_string);
 }

@@ -1,32 +1,64 @@
 // client to server
-
 req = {
-    join: true
+    flag: join
 }
 
 res = {
-    flag: ok, UUID
+    playerId: UUID,
+    flag: ok
 }
 
 res = {
-    start
+    flag: start
 }
-
 
 // server to client
 res = {
     UUID: {
-        initial_position,
+        initial_position: [initial_x, initial_y],
     }
 }
 
-req = { ok }
-res = { next_tick }
-req = { playerID: UUID, next_move: string }
-res = { next_tick, {
-    UUID: {
-        grow,
-        snake
-    }
-} }
+req = {
+    playerId: UUID,
+    flag: ok
+}
 
+res = { flag: initial_tick }
+
+res = { flag: next_tick }
+
+req = { 
+    playerId: UUID,
+    next_move: string
+}
+
+res = { 
+    flag: next_tick,
+    new_seed: false,
+    players_update: {
+        UUID: {
+            snake,
+            bool grow,
+            bool alive,
+        }
+    } 
+}
+
+req = { 
+    playerId: UUID,
+    next_move: string
+}
+
+res = { 
+    flag: next_tick,
+    new_seed: true,
+    seed_coordinates: [x, y],
+    players_update: {
+        UUID: {
+            snake,
+            bool grow,
+            bool alive,
+        }
+    }
+}

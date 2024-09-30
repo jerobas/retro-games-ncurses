@@ -1,6 +1,5 @@
 #include "../../lib/cJSON.h"
-
-typedef __uint128_t uuid;
+#include "types.h"
 
 // client to server
 char *direction_string(int direction)
